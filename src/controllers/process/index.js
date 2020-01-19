@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'child_process';
+import path from 'path'
 import config from '../../common/config';
 import Logger from '../../common/logger';
 import { Status } from '../../common/status';
@@ -43,7 +44,7 @@ export default class ProcessController {
 
     // Create ElastAlert index if it doesn't exist yet
     logger.info('Creating index');
-    var indexCreate = spawnSync('python', ['-m', 'elastalert.create_index', '--index', config.get('writeback_index'), '--old-index', ''], {
+    var indexCreate = spawnSync('python3', ['-m', 'elastalert.create_index', '--config', path.join(this._elastalertPath, 'config.yaml')], {
       cwd: this._elastalertPath
     });
 
@@ -63,36 +64,9 @@ export default class ProcessController {
       logger.warn('ElastAlert will start but might not be able to save its data!');
     }
 
-    let startArguments = [];
+    logger.info('Starting elastalert');
 
-    if (config.get('start') !== undefined && config.get('start') !== '') {
-      logger.info('Setting ElastAlert query beginning to time ' + config.get('start'));
-      startArguments.push('--start', config.get('start'));
-    }
-
-    if (config.get('end') !== undefined && config.get('end') !== '') {
-      logger.info('Setting ElastAlert query ending to time ' + config.get('end'));
-      startArguments.push('--end', config.get('end'));
-    }
-
-    if (config.get('debug') === true) {
-      logger.info('Setting ElastAlert debug mode. This will increase the logging verboseness, change all alerts to DebugAlerter, which prints alerts and suppresses their normal action, and skips writing search and alert metadata back to Elasticsearch.');
-      startArguments.push('--debug');
-    }
-
-    if (config.get('verbose') === true) {
-      logger.info('Setting ElastAlert verbose mode. This will increase the logging verboseness, which allows you to see information about the state of queries.');
-      startArguments.push('--verbose');
-    }
-
-    if (config.get('es_debug') === true) {
-      logger.info('Setting ElastAlert es_debug mode. This will enable logging for all queries made to Elasticsearch.');
-      startArguments.push('--es_debug');
-    }
-
-    logger.info('Starting elastalert with arguments ' + (startArguments.join(' ') || '[none]'));
-
-    this._process = spawn('python', ['-m', 'elastalert.elastalert'].concat(startArguments), {
+    this._process = spawn('python3', ['-m', 'elastalert.elastalert', '--config', path.join(this._elastalertPath, 'config.yaml')], {
       cwd: this._elastalertPath
     });
 

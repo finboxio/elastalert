@@ -7,13 +7,13 @@ timestamp_field: endpoint.localtime
 
 # Type of alert.
 type: any
-realert: 
+realert:
   seconds: 0
 
 # A list of elasticsearch filters used for find events
 # These filters are joined with AND and nested in a filtered query
 # For more info: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl.html
-filter: 
+filter:
 - query:
     query_string:
       query: "_exists_:errors"
@@ -27,11 +27,11 @@ include:
   - meta.user
 
 
-# Enhancement for converting 'detections' array into object, ex. get merged detection type by  
-# 'detections_parsed.type' or get first detection type by 'detection_parsed.0.type' 
-match_enhancements:   
-- "elastalert_modules.bitsensor_enhancement.AlertTextEnhancement"   
-run_enhancements_first: true 
+# Enhancement for converting 'detections' array into object, ex. get merged detection type by
+# 'detections_parsed.type' or get first detection type by 'detection_parsed.0.type'
+match_enhancements:
+- "elastalert_modules.bitsensor_enhancement.AlertTextEnhancement"
+run_enhancements_first: true
 
 
 alert_subject: "Error on {}"

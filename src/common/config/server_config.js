@@ -1,9 +1,11 @@
 import Joi from 'joi';
 import fs from 'fs';
+import URL from 'url';
 import path from 'path';
 import schema from './schema';
 import resolvePath from 'object-resolve-path';
 import Logger from '../logger';
+import YAML from 'yaml'
 
 // Config file relative from project root
 const configFile = 'config/config.json';
@@ -72,7 +74,7 @@ export default class ServerConfig {
         if (devConfigFound) {
           self._readFile(devConfigPath)
             .then(function (config) {
-              resolve(config);
+              resolve(JSON.parse(config));
             })
             .catch(function () {
               resolve({});
@@ -83,7 +85,7 @@ export default class ServerConfig {
             if (configFound) {
               self._readFile(configPath)
                 .then(function (config) {
-                  resolve(config);
+                  resolve(JSON.parse(config));
                 })
                 .catch(function () {
                   resolve({});
@@ -96,6 +98,47 @@ export default class ServerConfig {
           });
         }
       });
+    }).then((json) => {
+      const configDir = json['elastalertPath']
+      if (configDir) {
+        const file = path.join(configDir, 'config.yaml')
+        const content = fs.readFileSync(file, 'utf8')
+        const yaml = YAML.parse(content)
+
+        if (process.env.ELASTICSEARCH_URL) {
+          const url = URL.parse(process.env.ELASTICSEARCH_URL)
+          logger.info(process.env.ELASTICSEARCH_URL, url)
+          yaml['es_host'] = url.hostname
+          yaml['es_port'] = parseInt(url.port) || 9200
+          yaml['es_username'] = url.auth && url.auth.split(':')[0]
+          yaml['es_password'] = url.auth && url.auth.split(':').slice(1).join(':')
+          yaml['use_ssl'] = url.protocol === 'https:'
+        }
+
+        yaml['writeback_index'] = process.env.ELASTALERT_INDEX || yaml['writeback_index']
+        yaml['rules_folder'] = process.env.ELASTALERT_RULES_FOLDER || yaml['rules_folder']
+        yaml['run_every']['minutes'] = process.env.ELASTALERT_INTERVAL_MINUTES || yaml['run_every']['minutes']
+
+
+        json['port'] = process.env.PORT || json['port']
+        json['wsport'] = process.env.WSPORT || json['wsport']
+        json['elastalertPath'] = process.env.ELASTALERT_PATH || json['elastalertPath']
+        json['templatesPath'] = process.env.TEMPLATES_PATH ? { relative: false, path: process.env.TEMPLATES_PATH } : json['templatesPath']
+        json['es_host'] = yaml['es_host']
+        json['es_port'] = yaml['es_port']
+        json['es_username'] = yaml['es_username']
+        json['es_password'] = yaml['es_password']
+        json['use_ssl'] = yaml['use_ssl']
+        json['writeback_index'] = yaml['writeback_index']
+        json['rulesPath'] = {
+          relative: false,
+          path: path.resolve(configDir, yaml['rules_folder'])
+        }
+
+        fs.writeFileSync(file, YAML.stringify(yaml))
+      }
+
+      return json
     });
   }
 
