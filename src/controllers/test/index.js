@@ -31,15 +31,18 @@ export default class TestController {
           let stdoutLines = [];
           let stderrLines = [];
 
-          processOptions.push('-m', 'elastalert.test_rule', '--config', 'config-test.yaml', tempFilePath, '--days', options.days);
+          processOptions.push('-m', 'elastalert.test_rule', '--config', path.join(self._elastalertPath, 'config.yaml'));
+
+          if (options.days) {
+            processOptions.push('--days', options.days)
+          }
 
           if (options.format === 'json') {
             processOptions.push('--formatted-output');
           }
 
           if (options.maxResults > 0) {
-            processOptions.push('--max-query-size');
-            processOptions.push(options.maxResults);
+            processOptions.push('--max-query-size', options.maxResults);
           }
 
           if (options.alert) {
@@ -55,10 +58,21 @@ export default class TestController {
               break;
           }
 
+          const env = {
+            ES_HOST: config.get('es_host'),
+            ES_PORT: config.get('es_port'),
+            ES_USE_SSL: config.get('use_ssl'),
+            ES_USERNAME: config.get('es_username'),
+            ES_PASSWORD: config.get('es_password')
+          }
+
+          for (const key in process.env) { env[key] = process.env[key] }
 
           try {
-            let testProcess = spawn('python', processOptions, {
-              cwd: self._elastalertPath
+            processOptions.push(tempFilePath)
+            let testProcess = spawn('python3', processOptions, {
+              cwd: self._elastalertPath,
+              env
             });
 
             // When the websocket closes we kill the test process
@@ -73,25 +87,27 @@ export default class TestController {
                   });
               });
             }
-              
+
             testProcess.stdout.on('data', function (data) {
               if (socket) {
-                socket.send(JSON.stringify({ 
+                socket.send(JSON.stringify({
                   event: 'result',
-                  data: data.toString() 
+                  data: data.toString()
                 }));
               }
               stdoutLines.push(data.toString());
+              logger.info(data.toString())
             });
 
             testProcess.stderr.on('data', function (data) {
               if (socket) {
-                socket.send(JSON.stringify({ 
+                socket.send(JSON.stringify({
                   event: 'progress',
-                  data: data.toString() 
+                  data: data.toString()
                 }));
               }
               stderrLines.push(data.toString());
+              logger.error(data.toString())
             });
 
             testProcess.on('exit', function (statusCode) {
@@ -105,7 +121,7 @@ export default class TestController {
               } else {
                 if (!socket) {
                   reject(stderrLines.join('\n'));
-                  logger.error(stderrLines.join('\n'));  
+                  logger.error(stderrLines.join('\n'));
                 }
               }
 

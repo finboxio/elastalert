@@ -6,5 +6,8 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    ports:
+      - 3030:3030
     volumes:
       - ./config:/opt/elastalert/config
+      - ./rules:/opt/elastalert/rules

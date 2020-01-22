@@ -51,7 +51,8 @@ COPY elastalert_modules/ /opt/elastalert/elastalert_modules
 # Add default rules directory
 # Set permission as unpriviledged user (1000:1000), compatible with Kubernetes
 RUN mkdir -p /opt/elastalert/rules/ /opt/elastalert/server_data/tests/ && \
-    chown -R node:node /opt
+    chown -R node:node /opt/elastalert && \
+    chown -R node:node /opt/elastalert-server
 
 USER node
 
