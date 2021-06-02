@@ -9,7 +9,7 @@ ENV ELASTALERT_HOME /opt/elastalert
 
 WORKDIR /opt
 
-RUN apk add --update --no-cache ca-certificates openssl-dev openssl python3-dev python3 py3-pip py3-yaml libffi-dev gcc musl-dev wget && \
+RUN apk add --update --no-cache ca-certificates openssl-dev openssl python3-dev python3 py3-pip py3-yaml libffi-dev gcc musl-dev wget rust cargo && \
 # Download and unpack Elastalert.
     wget -O elastalert.zip "${ELASTALERT_URL}" && \
     unzip elastalert.zip && \
@@ -22,6 +22,10 @@ WORKDIR "${ELASTALERT_HOME}"
 # see: https://github.com/Yelp/elastalert/issues/1654
 RUN sed -i 's/jira>=1.0.10,<1.0.15/jira>=2.0.0/g' setup.py && \
     sed -i 's/jira>=1.0.10,<1.0.15/jira>=2.0.0/g' requirements.txt && \
+    sed -i 's/elasticsearch>=7.0.0/elasticsearch==7.1.0/g' setup.py && \
+    sed -i 's/elasticsearch>=7.0.0/elasticsearch==7.1.0/g' requirements.txt && \
+    sed -i 's/data=json.dumps(payload, cls=DateTimeEncoder, ensure_ascii=False)/data=json.dumps(payload, cls=DateTimeEncoder, ensure_ascii=False).encode("utf-8")/' elastalert/alerts.py && \
+    pip3 install --upgrade setuptools-rust && \
     python3 setup.py install && \
     pip3 install -r requirements.txt
 
