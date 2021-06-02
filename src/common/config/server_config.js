@@ -116,24 +116,28 @@ export default class ServerConfig {
         }
 
         yaml['writeback_index'] = process.env.ELASTALERT_INDEX || yaml['writeback_index']
-        yaml['rules_folder'] = process.env.ELASTALERT_RULES_FOLDER || yaml['rules_folder']
         yaml['run_every']['minutes'] = process.env.ELASTALERT_INTERVAL_MINUTES || yaml['run_every']['minutes']
+        yaml['rules_folder'] = process.env.RULES_PATH || yaml['rules_folder']
 
 
         json['port'] = process.env.PORT || json['port']
         json['wsport'] = process.env.WSPORT || json['wsport']
-        json['elastalertPath'] = process.env.ELASTALERT_PATH || json['elastalertPath']
-        json['templatesPath'] = process.env.TEMPLATES_PATH ? { relative: false, path: process.env.TEMPLATES_PATH } : json['templatesPath']
         json['es_host'] = yaml['es_host']
         json['es_port'] = yaml['es_port']
         json['es_username'] = yaml['es_username']
         json['es_password'] = yaml['es_password']
         json['use_ssl'] = yaml['use_ssl']
         json['writeback_index'] = yaml['writeback_index']
-        json['rulesPath'] = {
-          relative: false,
-          path: path.resolve(configDir, yaml['rules_folder'])
-        }
+        json['elastalertPath'] = process.env.ELASTALERT_PATH || json['elastalertPath']
+        json['templatesPath'] = process.env.TEMPLATES_PATH ? { relative: false, path: process.env.TEMPLATES_PATH } : json['templatesPath']
+        json['dataPath'] = process.env.DATA_PATH ? { relative: false, path: process.env.DATA_PATH } : json['dataPath']
+        json['rulesPath'] = { relative: false, path: path.resolve(configDir, yaml['rules_folder']) }
+
+        try {
+          fs.mkdirSync(json['dataPath'].path, { recursive: true })
+          fs.mkdirSync(json['rulesPath'].path, { recursive: true })
+          fs.mkdirSync(json['templatesPath'].path, { recursive: true })
+        } catch (e) {}
 
         fs.writeFileSync(file, YAML.stringify(yaml))
       }
